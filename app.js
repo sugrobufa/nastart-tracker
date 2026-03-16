@@ -7,6 +7,11 @@ let charts = {};
 let currentAthlete = null;
 let currentPoolFilter = 'all'; // 'all', 'LCM', 'SCM'
 
+// --- Leaderboard & Progress state ---
+let leaderboardCache = {};   // keyed by "gender|ageGroup|course|event"
+let progressCache = {};      // keyed by "period|stroke"
+let ratingCache = {};        // keyed by "gender|ageGroup" -> sorted athlete array
+
 // --- ЕВСК Rank Standards ---
 // Key: "gender|course|distance|stroke" -> [МСМК, МС, КМС, I, II, III, I(ю), II(ю), III(ю)] in seconds
 const RANK_STANDARDS = {};
@@ -20,7 +25,7 @@ const RANK_IS_YOUTH = { 'I(ю)': true, 'II(ю)': true, 'III(ю)': true };
 
 // Load standards from embedded data
 (function loadStandards() {
-  const raw = {"M|SCM|50|Вольный стиль":[21.18,22.45,23.2,24.45,26.85,29.05,35.05,45.05,55.05],"M|SCM|100|Вольный стиль":[46.72,50,53.3,56.7,63.1,70.6,83.1,103.1,123.1],"M|SCM|200|Вольный стиль":[103.02,110.95,117.45,125.7,140.2,158.7,184.2,225,264.2],"M|SCM|400|Вольный стиль":[220.94,236,248.5,265,300,341,397,453,509],"M|SCM|800|Вольный стиль":[462.7,497,530,564,662,744,866,986,1106],"M|SCM|1500|Вольный стиль":[884.74,928.5,1026.5,1085,1227.5,1407.5,1650,1890,2130],"M|SCM|50|На спине":[23.29,25.89,27.35,29.35,32.05,35.55,41.55,51.55,61.55],"M|SCM|100|На спине":[52.54,57,60.4,64.4,72.6,81.1,93.6,116.1,136.1],"M|SCM|200|На спине":[112.45,124.75,131.45,139.2,156.2,176.2,204.2,250.2,290.2],"M|SCM|50|Брасс":[26.28,28.25,30,31.65,35.05,38.55,45.05,55.05,65.05],"M|SCM|100|Брасс":[57.34,63,66.9,71.4,80.1,88.1,104.1,123.1,143.1],"M|SCM|200|Брасс":[125.56,138.45,146.45,156.45,175.7,198.7,231.6,264.6,304.6],"M|SCM|50|Баттерфляй":[22.52,23.95,24.95,26.95,30.05,33.05,38.05,48.05,58.05],"M|SCM|100|Баттерфляй":[50.15,54,58,61.5,70.1,80.1,90.1,109.1,121.1],"M|SCM|200|Баттерфляй":[112.45,122.95,129.95,137.95,156.7,177.2,201.2,236.2,276.2],"M|SCM|100|Комплексное плавание":[52.57,56.5,61.5,65.5,73.6,83.6,94.6,113.6,133.6],"M|SCM|200|Комплексное плавание":[114.17,125.95,134.45,141.95,158.95,184.2,209.2,244.2,284.2],"M|SCM|400|Комплексное плавание":[246.68,268,283,302,343,391,446,502,558],"M|LCM|50|Вольный стиль":[21.91,23.2,23.95,25.2,27.6,29.8,35.8,45.8,55.8],"M|LCM|100|Вольный стиль":[48.25,51.5,54.9,58.3,64.6,72.1,84.6,104.6,124.6],"M|LCM|200|Вольный стиль":[106.5,113.95,120.65,128.95,143.2,161.7,187.2,227.2,267.2],"M|LCM|400|Вольный стиль":[227.71,242,254.5,271,306,347,403,459,515],"M|LCM|800|Вольный стиль":[472.6,505,538,577,674,756,878,998,1118],"M|LCM|1500|Вольный стиль":[906.19,951,1049,1109,1250,1430,1672,1912.5,2152.5],"M|LCM|50|На спине":[24.85,26.65,28.15,29.95,32.8,36.3,42.3,52.3,62.3],"M|LCM|100|На спине":[53.72,58.5,62,66,74.1,82.6,95.1,117.6,137.6],"M|LCM|200|На спине":[117.3,127.75,135.45,142.45,158.2,179.2,207.2,253.2,293.2],"M|LCM|50|Брасс":[27.22,29,30.5,32.4,35.8,39.3,45.8,55.8,65.8],"M|LCM|100|Брасс":[59.91,64.5,68.5,73,81.6,89.6,105.6,124.6,144.6],"M|LCM|200|Брасс":[129.97,141.45,149.45,159.45,178.7,201.7,238.7,267.2,307.2],"M|LCM|50|Баттерфляй":[23.27,24.7,25.7,27.7,30.8,33.8,38.8,48.8,58.8],"M|LCM|100|Баттерфляй":[51.62,55.5,59.5,63,71.6,81.6,91.6,110.6,130.6],"M|LCM|200|Баттерфляй":[116.23,125.95,133.95,140.95,159.7,180.2,204.2,239.2,279.2],"M|LCM|200|Комплексное плавание":[118.59,129.75,137.25,145.75,164,188,213,248,288],"M|LCM|400|Комплексное плавание":[253.76,274,288,307,348,397,452,508,564],"F|SCM|50|Вольный стиль":[24.13,25.75,26.55,27.85,30.55,32.55,39.55,49.55,59.05],"F|SCM|100|Вольный стиль":[52.68,56,60,63.84,71.4,79.1,93.1,113.1,132.1],"F|SCM|200|Вольный стиль":[115.02,123.45,131.75,140.45,156.2,174.2,205.2,245.2,283.2],"F|SCM|400|Вольный стиль":[243.32,260,270,292,334,378,449,520,591],"F|SCM|800|Вольный стиль":[503.99,540,570,611,702,795,960,1110,1260],"F|SCM|1500|Вольный стиль":[972.06,1032.5,1101.5,1204.5,1354.5,1557.5,1805,2050,2300],"F|SCM|50|На спине":[26.57,28.65,29.85,31.55,36.55,40.55,47.05,57.05,67.05],"F|SCM|100|На спине":[57.36,63.6,68.5,73,81.1,91.1,105.1,128.1,148.1],"F|SCM|200|На спине":[125.15,137.95,145.95,154.95,174.2,196.2,230.2,275.2,315.2],"F|SCM|50|Брасс":[30.04,32.45,34.25,35.95,40.05,44.05,51.55,61.55,71.55],"F|SCM|100|Брасс":[65.05,72,76,81,89.6,101.6,126.1,136.1,157.1],"F|SCM|200|Брасс":[141.34,154.45,163.45,173.95,194.2,219.6,256.6,291.6,333.2],"F|SCM|50|Баттерфляй":[25.62,27.3,28.45,30.95,33.55,36.55,43.55,53.55,63.55],"F|SCM|100|Баттерфляй":[57.16,61.5,65,69.5,79.1,90.1,102.1,121.1,141.1],"F|SCM|200|Баттерфляй":[127.15,136.95,144.45,154.45,175.2,198.2,225.2,261.2,301.2],"F|SCM|100|Комплексное плавание":[59.56,64.5,69.5,74.5,83.6,94.6,106.6,125.6,165.6],"F|SCM|200|Комплексное плавание":[128.11,140.95,149.45,158.95,179.2,205.2,234.2,270.2,310.2],"F|SCM|400|Комплексное плавание":[275.03,298,315.5,337,381,434,495,566,637],"F|LCM|50|Вольный стиль":[24.82,26.5,27.3,28.6,31.3,33.3,40.3,50.3,59.8],"F|LCM|100|Вольный стиль":[53.99,57.5,61.5,65.34,72.9,80.6,94.6,114.6,133.6],"F|LCM|200|Вольный стиль":[116.9,126.45,134.76,143.45,158.2,177.2,208.2,248.2,286.2],"F|LCM|400|Вольный стиль":[248.04,266,281,299,340,384,455,526,597],"F|LCM|800|Вольный стиль":[511.12,548,582,623,714,807,972,1122,1272],"F|LCM|1500|Вольный стиль":[980.88,1055,1124,1227,1377,1580,1827.5,2072.5,2322.5],"F|LCM|50|На спине":[28.05,29,30.7,32.3,37.3,41.3,47.8,57.8,67.8],"F|LCM|100|На спине":[59.8,66,70,74.5,82.6,92.6,106.6,129.6,149.6],"F|LCM|200|На спине":[129.77,140.95,148.95,157.95,177.2,199.2,233.2,278.2,318],"F|LCM|50|Брасс":[30.77,33.2,35,36.7,40.8,44.8,52.3,62.3,72.3],"F|LCM|100|Брасс":[66.88,73.5,77.5,82.5,91.1,103.1,127.6,137.6,158.6],"F|LCM|200|Брасс":[145.24,157.45,166.4,176.95,197.2,222.2,259.2,294.2,336.2],"F|LCM|50|Баттерфляй":[26.03,28.05,29.2,31.7,34.3,37.3,44.3,54.3,64.3],"F|LCM|100|Баттерфляй":[58.06,63,66.5,71,80.6,91.6,103.6,122.6,142.6],"F|LCM|200|Баттерфляй":[128.9,139.95,147.45,157.45,178.2,201.2,228.2,264.2,304.2],"F|LCM|200|Комплексное плавание":[132.12,144.75,153.25,162.75,183,209,238,274,314],"F|LCM|400|Комплексное плавание":[280.8,303,320.5,342,387,440,501,572,643]};
+  const raw = {"M|SCM|50|Вольный стиль":[21.18,22.45,23.2,24.45,26.85,29.05,35.05,45.05,55.05],"M|SCM|100|Вольный стиль":[46.72,50,53.3,56.7,63.1,70.6,83.1,103.1,123.1],"M|SCM|200|Вольный стиль":[103.02,110.95,117.45,125.7,140.2,158.7,184.2,225,264.2],"M|SCM|400|Вольный стиль":[220.94,236,248.5,265,300,341,397,453,509],"M|SCM|800|Вольный стиль":[462.7,497,530,564,662,744,866,986,1106],"M|SCM|1500|Вольный стиль":[884.74,928.5,1026.5,1085,1227.5,1407.5,1650,1890,2130],"M|SCM|50|На спине":[23.29,25.89,27.35,29.35,32.05,35.55,41.55,51.55,61.55],"M|SCM|100|На спине":[52.54,57,60.4,64.4,72.6,81.1,93.6,116.1,136.1],"M|SCM|200|На спине":[112.45,124.75,131.45,139.2,156.2,176.2,204.2,250.2,290.2],"M|SCM|50|Брасс":[26.28,28.25,30,31.65,35.05,38.55,45.05,55.05,65.05],"M|SCM|100|Брасс":[57.34,63,66.9,71.4,80.1,88.1,104.1,123.1,143.1],"M|SCM|200|Брасс":[125.56,138.45,146.45,156.45,175.7,198.7,231.6,264.6,304.6],"M|SCM|50|Баттерфляй":[22.52,23.95,24.95,26.95,30.05,33.05,38.05,48.05,58.05],"M|SCM|100|Баттерфляй":[50.15,54,58,61.5,70.1,80.1,90.1,109.1,121.1],"M|SCM|200|Баттерфляй":[112.45,122.95,129.95,137.95,156.7,177.2,201.2,236.2,276.2],"M|SCM|100|Комплексное плавание":[52.57,56.5,61.5,65.5,73.6,83.6,94.6,113.6,133.6],"M|SCM|200|Комплексное плавание":[114.17,125.95,134.45,141.95,158.95,184.2,209.2,244.2,284.2],"M|SCM|400|Комплексное плавание":[246.68,268,283,302,343,391,446,502,558],"M|LCM|50|Вольный стиль":[21.91,23.2,23.95,25.2,27.6,29.8,35.8,45.8,55.8],"M|LCM|100|Вольный стиль":[48.25,51.5,54.9,58.3,64.6,72.1,84.6,104.6,124.6],"M|LCM|200|Вольный стиль":[106.5,113.95,120.65,128.95,143.2,161.7,187.2,227.2,267.2],"M|LCM|400|Вольный стиль":[227.71,242,254.5,271,306,347,403,459,515],"M|LCM|800|Вольный стиль":[472.6,505,538,577,674,756,878,998,1118],"M|LCM|1500|Вольный стиль":[906.19,951,1049,1109,1250,1430,1672,1912.5,2152.5],"M|LCM|50|На спине":[24.85,26.65,28.15,29.95,32.8,36.3,42.3,52.3,62.3],"M|LCM|100|На спине":[53.72,58.5,62,66,74.1,82.6,95.1,117.6,137.6],"M|LCM|200|На спине":[115.84,127.95,134.75,142.7,159.7,179.7,207.7,253.7,293.7],"M|LCM|50|Брасс":[27.14,29.15,30.9,32.65,36.05,39.55,46.05,56.05,66.05],"M|LCM|100|Брасс":[59.52,65,68.9,73.4,82.1,90.1,106.1,125.1,145.1],"M|LCM|200|Брасс":[129.7,142.45,150.45,160.45,179.7,202.7,235.6,268.6,308.6],"M|LCM|50|Баттерфляй":[23.27,24.75,25.75,27.75,30.85,33.85,38.85,48.85,58.85],"M|LCM|100|Баттерфляй":[51.83,55.5,59.5,63,71.6,81.6,91.6,110.6,122.6],"M|LCM|200|Баттерфляй":[116.02,126.95,133.95,141.95,160.7,181.2,205.2,240.2,280.2],"M|LCM|100|Комплексное плавание":[54.55,58.5,63.5,67.5,75.6,85.6,96.6,115.6,135.6],"M|LCM|200|Комплексное плавание":[118.35,129.95,138.45,145.95,162.95,188.2,213.2,248.2,288.2],"M|LCM|400|Комплексное плавание":[254.49,276,291,310,351,399,454,510,566],"F|SCM|50|Вольный стиль":[23.88,25.65,27.05,28.95,31.85,35.05,41.55,51.55,61.55],"F|SCM|100|Вольный стиль":[52.43,56.5,60.2,64.4,71.6,80.1,93.1,113.1,133.1],"F|SCM|200|Вольный стиль":[113.14,121.95,129.45,137.7,155.2,173.7,200.7,240.7,280.7],"F|SCM|400|Вольный стиль":[242.18,256,270.5,290,328,370,428,490,548],"F|SCM|800|Вольный стиль":[502.66,537,572,612,716,802,930,1060,1190],"F|SCM|1500|Вольный стиль":[960.68,1012,1105,1168,1320,1512,1770,2010,2250],"F|SCM|50|На спине":[26.72,28.95,30.55,32.55,36.05,39.55,46.05,56.05,66.05],"F|SCM|100|На спине":[57.46,63.5,67.4,71.4,80.6,90.1,104.1,128.1,148.1],"F|SCM|200|На спине":[123.14,138.75,145.95,153.7,173.2,196.2,228.2,268.2,308.2],"F|SCM|50|Брасс":[30.02,32.25,34.1,36.15,39.85,43.55,50.05,60.05,70.05],"F|SCM|100|Брасс":[65.18,71,75.3,80.4,90.1,100.1,116.1,140.1,160.1],"F|SCM|200|Брасс":[141.52,155.95,164.45,175.45,197.2,222.7,258.6,298.6,338.6],"F|SCM|50|Баттерфляй":[25.42,26.95,28.45,30.45,33.55,37.05,43.05,53.05,63.05],"F|SCM|100|Баттерфляй":[56.52,61,65,69.5,78.1,88.1,100.1,120.1,140.1],"F|SCM|200|Баттерфляй":[124.76,137.95,145.45,154.45,174.7,199.2,226.2,266.2,306.2],"F|SCM|100|Комплексное плавание":[58.51,63.5,68.5,72.5,82.6,93.6,106.6,126.6,146.6],"F|SCM|200|Комплексное плавание":[126.59,139.95,149.45,157.45,177.95,207.2,234.2,270.2,310.2],"F|SCM|400|Комплексное плавание":[272.68,296,312,333,378,430,492,554,616],"F|LCM|50|Вольный стиль":[24.63,26.45,27.85,29.75,32.6,35.8,42.3,52.3,62.3],"F|LCM|100|Вольный стиль":[54.01,58,61.7,65.9,73.1,81.6,94.6,114.6,134.6],"F|LCM|200|Вольный стиль":[116.72,125.45,132.95,141.2,158.7,177.2,204.2,244.2,284.2],"F|LCM|400|Вольный стиль":[249.45,262,276.5,296,334,376,434,496,554],"F|LCM|800|Вольный стиль":[517.38,549,584,624,728,814,942,1072,1202],"F|LCM|1500|Вольный стиль":[982.64,1034,1127,1192,1342,1534,1792,2032,2272],"F|LCM|50|На спине":[27.56,29.85,31.45,33.45,36.95,40.45,46.95,56.95,66.95],"F|LCM|100|На спине":[59.15,65,69,73,82.1,91.6,105.6,129.6,149.6],"F|LCM|200|На спине":[126.76,142.45,149.55,157.3,176.8,199.8,231.8,271.8,311.8],"F|LCM|50|Брасс":[31.22,33.45,35.3,37.35,41.05,44.75,51.25,61.25,71.25],"F|LCM|100|Брасс":[67.62,73,77.3,82.4,92.1,102.1,118.1,142.1,162.1],"F|LCM|200|Брасс":[146.04,159.95,168.45,179.45,201.2,226.7,262.6,302.6,342.6],"F|LCM|50|Баттерфляй":[25.99,27.75,29.25,31.25,34.35,37.85,43.85,53.85,63.85],"F|LCM|100|Баттерфляй":[58.37,62.5,66.5,71,79.6,89.6,101.6,121.6,141.6],"F|LCM|200|Баттерфляй":[128.64,141.95,149.45,158.45,178.7,203.2,230.2,270.2,310.2],"F|LCM|100|Комплексное плавание":[60.83,65.5,70.5,74.5,84.6,95.6,108.6,128.6,148.6],"F|LCM|200|Комплексное плавание":[130.65,143.95,153.45,161.45,181.95,211.2,238.2,274.2,314.2],"F|LCM|400|Комплексное плавание":[280.87,304,320,341,386,438,500,562,624]};
   Object.assign(RANK_STANDARDS, raw);
 })();
 
@@ -86,6 +91,28 @@ function getAllRanks(athlete) {
   return ranks;
 }
 
+// --- Age Group Helpers ---
+const AGE_GROUPS = [
+  { id: '2015+', label: '2015 и мл.', test: (y) => y >= 2015 },
+  { id: '2013-2014', label: '2013-2014', test: (y) => y >= 2013 && y <= 2014 },
+  { id: '2011-2012', label: '2011-2012', test: (y) => y >= 2011 && y <= 2012 },
+  { id: '2009-2010', label: '2009-2010', test: (y) => y >= 2009 && y <= 2010 },
+  { id: '2008-', label: '2008 и ст.', test: (y) => y <= 2008 },
+];
+
+function getAthleteYear(a) {
+  if (!a.birthdate) return null;
+  return parseInt(a.birthdate.split('-')[0]);
+}
+
+function getAgeGroupId(year) {
+  if (!year) return null;
+  for (const g of AGE_GROUPS) {
+    if (g.test(year)) return g.id;
+  }
+  return null;
+}
+
 // --- Theme Toggle ---
 (function(){
   const t = document.querySelector('[data-theme-toggle]');
@@ -119,9 +146,497 @@ async function loadData() {
     athletesData.forEach(a => a.results.forEach(r => allMeets.add(r.meet)));
     const meetsEl = document.getElementById('totalMeets');
     if (meetsEl) meetsEl.textContent = allMeets.size;
+    
+    // Build caches and render dashboard
+    buildLeaderboardCache();
+    buildProgressCache();
+    buildRatingCache();
+    populateEventSelect();
+    renderLeaderboard();
+    renderProgress();
   } catch (e) {
     console.error('Failed to load data:', e);
   }
+}
+
+// ============================================
+// LEADERBOARD LOGIC
+// ============================================
+
+function buildLeaderboardCache() {
+  leaderboardCache = {};
+  
+  for (const athlete of athletesData) {
+    const year = getAthleteYear(athlete);
+    if (!year) continue;
+    const ageGroup = getAgeGroupId(year);
+    if (!ageGroup) continue;
+    const gender = athlete.gender;
+    if (!gender || gender === 'U') continue;
+    
+    // Find best time per event PER COURSE for this athlete
+    const bestTimes = {}; // key: "course|distance|stroke" -> {time_sec, time, ...}
+    for (const r of athlete.results) {
+      if (!r.time_sec) continue;
+      const course = r.course || 'LCM';
+      const evKey = `${course}|${r.distance}|${r.stroke}`;
+      if (!bestTimes[evKey] || r.time_sec < bestTimes[evKey].time_sec) {
+        bestTimes[evKey] = {
+          time_sec: r.time_sec,
+          time: r.time,
+          date: r.date,
+          meet: r.meet,
+          course: course,
+          distance: r.distance,
+          stroke: r.stroke,
+        };
+      }
+    }
+    
+    for (const [evKey, best] of Object.entries(bestTimes)) {
+      const eventLabel = `${best.distance}м ${best.stroke}`;
+      
+      // Cache keyed by course: "gender|ageGroup|course|event"
+      const cacheKey = `${gender}|${ageGroup}|${best.course}|${eventLabel}`;
+      if (!leaderboardCache[cacheKey]) leaderboardCache[cacheKey] = [];
+      leaderboardCache[cacheKey].push({
+        name: `${athlete.lastname} ${athlete.firstname}`,
+        year: year,
+        time_sec: best.time_sec,
+        time: best.time,
+        course: best.course,
+        event: eventLabel,
+        athleteIndex: athletesData.indexOf(athlete),
+      });
+    }
+  }
+  
+  // Sort each cache entry by time
+  for (const key of Object.keys(leaderboardCache)) {
+    leaderboardCache[key].sort((a, b) => a.time_sec - b.time_sec);
+  }
+}
+
+function getLeaderboard(gender, ageGroup, course, eventFilter) {
+  if (eventFilter) {
+    const key = `${gender}|${ageGroup}|${course}|${eventFilter}`;
+    return (leaderboardCache[key] || []).slice(0, 15);
+  }
+  
+  // "All events": for each athlete, show their best time across any event for this course
+  const prefix = `${gender}|${ageGroup}|${course}|`;
+  const athleteBest = {};
+  for (const [key, entries] of Object.entries(leaderboardCache)) {
+    if (!key.startsWith(prefix)) continue;
+    for (const e of entries) {
+      if (!athleteBest[e.athleteIndex] || e.time_sec < athleteBest[e.athleteIndex].time_sec) {
+        athleteBest[e.athleteIndex] = e;
+      }
+    }
+  }
+  
+  return Object.values(athleteBest)
+    .sort((a, b) => a.time_sec - b.time_sec)
+    .slice(0, 15);
+}
+
+function populateEventSelect() {
+  const select = document.getElementById('leaderEventSelect');
+  if (!select) return;
+  
+  // Get all unique events
+  const events = new Set();
+  for (const a of athletesData) {
+    for (const r of a.results) {
+      if (r.time_sec) events.add(`${r.distance}м ${r.stroke}`);
+    }
+  }
+  
+  const sorted = [...events].sort((a, b) => {
+    const da = parseInt(a), db = parseInt(b);
+    if (da !== db) return da - db;
+    return a.localeCompare(b);
+  });
+  
+  select.innerHTML = '<option value="">Все дистанции</option>' +
+    sorted.map(e => `<option value="${e}">${e.replace('Вольный стиль','Вольный').replace('На спине','Спина').replace('Баттерфляй','Баттер.').replace('Комплексное плавание','Комплекс')}</option>`).join('');
+}
+
+function renderLeaderboard() {
+  const genderToggle = document.getElementById('leaderGenderToggle');
+  const ageToggle = document.getElementById('leaderAgeToggle');
+  const courseToggle = document.getElementById('leaderCourseToggle');
+  const eventSelect = document.getElementById('leaderEventSelect');
+  const tbody = document.getElementById('leaderboardBody');
+  if (!tbody) return;
+  
+  const gender = genderToggle.querySelector('.toggle-btn.active')?.dataset.value || 'M';
+  const ageGroup = ageToggle.querySelector('.toggle-btn.active')?.dataset.value || '2015+';
+  const course = courseToggle?.querySelector('.toggle-btn.active')?.dataset.value || 'LCM';
+  const eventFilter = eventSelect.value || '';
+  
+  const leaders = getLeaderboard(gender, ageGroup, course, eventFilter);
+  
+  if (!leaders.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="lb-empty">Нет данных для выбранной группы</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = leaders.map((entry, i) => {
+    const rankClass = i === 0 ? 'lb-rank--gold' : i === 1 ? 'lb-rank--silver' : i === 2 ? 'lb-rank--bronze' : '';
+    const evShort = entry.event.replace('Вольный стиль','Вольный').replace('На спине','Спина').replace('Баттерфляй','Баттер.').replace('Комплексное плавание','Компл.');
+    return `<tr class="lb-row" data-athlete-index="${entry.athleteIndex}">
+      <td class="col-rank"><span class="lb-rank ${rankClass}">${i + 1}</span></td>
+      <td class="col-name">
+        <span class="lb-name">${entry.name}</span>
+        <span class="lb-year">${entry.year} г.р.</span>
+        <span class="lb-event-mobile">${evShort}</span>
+      </td>
+      <td class="col-event">${evShort}</td>
+      <td class="col-time"><span class="lb-time">${formatTime(entry.time)}</span></td>
+    </tr>`;
+  }).join('');
+  
+  // Make rows clickable
+  tbody.querySelectorAll('.lb-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.athleteIndex);
+      if (!isNaN(idx) && athletesData[idx]) {
+        selectAthlete(athletesData[idx]);
+      }
+    });
+  });
+}
+
+// ============================================
+// PROGRESS RANKING LOGIC
+// ============================================
+
+function buildProgressCache() {
+  progressCache = {};
+  
+  // For each athlete, for each event, calculate real improvement.
+  // KEY FIX: Skip the very first race in each event (children's first races are often
+  // extremely slow and create false huge "improvements"). Require at least 2 results
+  // on distinct dates AFTER the first race.
+  for (const athlete of athletesData) {
+    if (!athlete.gender || athlete.gender === 'U') continue;
+    
+    // Group results by event
+    const eventResults = {};
+    for (const r of athlete.results) {
+      if (!r.time_sec) continue;
+      const evKey = `${r.distance}м ${r.stroke}`;
+      if (!eventResults[evKey]) eventResults[evKey] = [];
+      eventResults[evKey].push(r);
+    }
+    
+    for (const [evKey, results] of Object.entries(eventResults)) {
+      // Sort by date
+      const sorted = [...results].sort((a, b) => a.date.localeCompare(b.date));
+      
+      // Get distinct competition dates
+      const distinctDates = [...new Set(sorted.map(r => r.date))];
+      
+      // Need at least 3 distinct dates total (so after dropping the first date, 
+      // we still have 2+ dates to compare old vs new)
+      if (distinctDates.length < 3) continue;
+      
+      // Drop results from the very first competition date (first-race effect)
+      const firstDate = distinctDates[0];
+      const usable = sorted.filter(r => r.date !== firstDate);
+      if (usable.length < 2) continue;
+      
+      const latest = usable[usable.length - 1];
+      const latestDate = new Date(latest.date);
+      
+      for (const period of ['quarter', 'year']) {
+        const daysBack = period === 'quarter' ? 90 : 365;
+        const cutoff = new Date(latestDate);
+        cutoff.setDate(cutoff.getDate() - daysBack);
+        
+        // Find best time in the older period (before cutoff)
+        let bestOlder = null;
+        for (const r of usable) {
+          const d = new Date(r.date);
+          if (d < cutoff && r.time_sec > 0) {
+            if (!bestOlder || r.time_sec < bestOlder.time_sec) {
+              bestOlder = r;
+            }
+          }
+        }
+        
+        // Fallback: find a result at least daysBack/2 old
+        if (!bestOlder) {
+          const halfCutoff = new Date(latestDate);
+          halfCutoff.setDate(halfCutoff.getDate() - Math.floor(daysBack / 2));
+          for (const r of usable) {
+            const d = new Date(r.date);
+            if (d <= halfCutoff && r !== latest && r.time_sec > 0) {
+              if (!bestOlder || r.time_sec < bestOlder.time_sec) {
+                bestOlder = r;
+              }
+            }
+          }
+        }
+        
+        if (!bestOlder) continue;
+        
+        // Find best time in recent results (after cutoff)
+        let bestRecent = null;
+        for (const r of usable) {
+          const d = new Date(r.date);
+          if (d >= cutoff && r.time_sec > 0) {
+            if (!bestRecent || r.time_sec < bestRecent.time_sec) {
+              bestRecent = r;
+            }
+          }
+        }
+        
+        if (!bestRecent) continue;
+        
+        const improvement = bestOlder.time_sec - bestRecent.time_sec;
+        if (improvement <= 0) continue;
+        
+        // Cap max improvement at 50% to filter remaining outliers
+        const improvementPct = improvement / bestOlder.time_sec;
+        if (improvementPct > 0.50) continue;
+        
+        const stroke = results[0].stroke;
+        const cacheKey = `${period}|${stroke}`;
+        const cacheKeyAll = `${period}|`;
+        
+        const entry = {
+          name: `${athlete.lastname} ${athlete.firstname}`,
+          year: getAthleteYear(athlete),
+          event: evKey,
+          improvement: improvement,
+          oldTime: bestOlder.time,
+          newTime: bestRecent.time,
+          oldTimeSec: bestOlder.time_sec,
+          newTimeSec: bestRecent.time_sec,
+          oldCourse: bestOlder.course || 'LCM',
+          newCourse: bestRecent.course || 'LCM',
+          athleteIndex: athletesData.indexOf(athlete),
+        };
+        
+        if (!progressCache[cacheKey]) progressCache[cacheKey] = [];
+        progressCache[cacheKey].push(entry);
+        if (!progressCache[cacheKeyAll]) progressCache[cacheKeyAll] = [];
+        progressCache[cacheKeyAll].push(entry);
+      }
+    }
+  }
+  
+  // Deduplicate: keep only best improvement per athlete per cache key
+  for (const key of Object.keys(progressCache)) {
+    const byAthlete = {};
+    for (const e of progressCache[key]) {
+      if (!byAthlete[e.athleteIndex] || e.improvement > byAthlete[e.athleteIndex].improvement) {
+        byAthlete[e.athleteIndex] = e;
+      }
+    }
+    progressCache[key] = Object.values(byAthlete).sort((a, b) => b.improvement - a.improvement);
+  }
+}
+
+function getProgress(period, stroke) {
+  const key = `${period}|${stroke}`;
+  return (progressCache[key] || []).slice(0, 15);
+}
+
+function renderProgress() {
+  const periodToggle = document.getElementById('progressPeriodToggle');
+  const strokeToggle = document.getElementById('progressStrokeToggle');
+  const tbody = document.getElementById('progressBody');
+  if (!tbody) return;
+  
+  const period = periodToggle.querySelector('.toggle-btn.active')?.dataset.value || 'year';
+  const stroke = strokeToggle.querySelector('.toggle-btn.active')?.dataset.value || '';
+  
+  const entries = getProgress(period, stroke);
+  
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="lb-empty">Нет данных о прогрессе</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = entries.map((entry, i) => {
+    const rankClass = i === 0 ? 'lb-rank--gold' : i === 1 ? 'lb-rank--silver' : i === 2 ? 'lb-rank--bronze' : '';
+    const evShort = entry.event.replace('Вольный стиль','Вольный').replace('На спине','Спина').replace('Баттерфляй','Баттер.').replace('Комплексное плавание','Компл.');
+    const improveSec = entry.improvement.toFixed(2);
+    return `<tr class="lb-row" data-athlete-index="${entry.athleteIndex}">
+      <td class="col-rank"><span class="lb-rank ${rankClass}">${i + 1}</span></td>
+      <td class="col-name">
+        <span class="lb-name">${entry.name}</span>
+        <span class="lb-year">${entry.year ? entry.year + ' г.р.' : ''}</span>
+        <span class="lb-event-mobile">${evShort}</span>
+      </td>
+      <td class="col-event">${evShort}</td>
+      <td class="col-progress"><span class="progress-badge">-${improveSec}с</span></td>
+    </tr>`;
+  }).join('');
+  
+  // Make rows clickable
+  tbody.querySelectorAll('.lb-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = parseInt(row.dataset.athleteIndex);
+      if (!isNaN(idx) && athletesData[idx]) {
+        selectAthlete(athletesData[idx]);
+      }
+    });
+  });
+}
+
+// ============================================
+// RATING CACHE (for per-athlete position)
+// ============================================
+
+function buildRatingCache() {
+  ratingCache = {};
+  
+  // For each gender+ageGroup+course+event, rank athletes by best time
+  // Cache key format is now "gender|ageGroup|course|event"
+  
+  for (const [key, entries] of Object.entries(leaderboardCache)) {
+    const parts = key.split('|');
+    if (parts.length < 4) continue;
+    ratingCache[key] = entries.map((e, i) => ({
+      ...e,
+      position: i + 1,
+      total: entries.length,
+    }));
+  }
+}
+
+function getAthleteRating(athlete) {
+  const year = getAthleteYear(athlete);
+  if (!year) return null;
+  const ageGroup = getAgeGroupId(year);
+  if (!ageGroup || !athlete.gender || athlete.gender === 'U') return null;
+  
+  const athleteIdx = athletesData.indexOf(athlete);
+  
+  // Find best rating position across all events and courses
+  // ratingCache keys: "gender|ageGroup|course|event"
+  let bestPosition = null;
+  let bestTotal = 0;
+  let bestEvent = '';
+  let bestCourse = 'LCM';
+  
+  for (const [key, entries] of Object.entries(ratingCache)) {
+    if (!key.startsWith(`${athlete.gender}|${ageGroup}|`)) continue;
+    const found = entries.find(e => e.athleteIndex === athleteIdx);
+    if (found && (!bestPosition || found.position < bestPosition)) {
+      bestPosition = found.position;
+      bestTotal = found.total;
+      const parts = key.split('|');
+      bestCourse = parts[2];
+      bestEvent = parts.slice(3).join('|');
+    }
+  }
+  
+  if (!bestPosition) return null;
+  
+  return {
+    position: bestPosition,
+    total: bestTotal,
+    event: bestEvent,
+    course: bestCourse,
+    ageGroup: AGE_GROUPS.find(g => g.id === ageGroup)?.label || ageGroup,
+  };
+}
+
+// Calculate monthly change: compare current position vs position a month ago
+function getAthleteRatingChange(athlete) {
+  const year = getAthleteYear(athlete);
+  if (!year) return 0;
+  const ageGroup = getAgeGroupId(year);
+  if (!ageGroup || !athlete.gender || athlete.gender === 'U') return 0;
+  
+  const athleteIdx = athletesData.indexOf(athlete);
+  const now = new Date();
+  const monthAgo = new Date(now);
+  monthAgo.setMonth(monthAgo.getMonth() - 1);
+  const monthAgoStr = monthAgo.toISOString().split('T')[0];
+  
+  // Find the event where athlete has best current position
+  let currentBestPos = Infinity;
+  let currentBestEvent = null;
+  
+  for (const [key, entries] of Object.entries(ratingCache)) {
+    if (!key.startsWith(`${athlete.gender}|${ageGroup}|`)) continue;
+    const found = entries.find(e => e.athleteIndex === athleteIdx);
+    if (found && found.position < currentBestPos) {
+      currentBestPos = found.position;
+      currentBestEvent = key;
+    }
+  }
+  
+  if (!currentBestEvent || currentBestPos === Infinity) return 0;
+  
+  // Simulate: recalculate rankings excluding results from after a month ago
+  // For simplicity, check if athlete had any results in the last month that improved their time
+  // Key format: "gender|ageGroup|course|event"
+  const keyParts = currentBestEvent.split('|');
+  const event = keyParts.slice(3).join('|');
+  const eventParts = event.match(/^(\d+)м (.+)$/);
+  if (!eventParts) return 0;
+  const distance = eventParts[1];
+  const stroke = eventParts[2];
+  
+  // Check if athlete had improvement in last month
+  const athleteResults = athlete.results.filter(r => 
+    r.time_sec && r.distance === distance && r.stroke === stroke
+  ).sort((a, b) => a.date.localeCompare(b.date));
+  
+  if (athleteResults.length < 2) return 0;
+  
+  const recentResults = athleteResults.filter(r => r.date >= monthAgoStr);
+  const olderResults = athleteResults.filter(r => r.date < monthAgoStr);
+  
+  if (!recentResults.length || !olderResults.length) return 0;
+  
+  const bestRecent = Math.min(...recentResults.map(r => r.time_sec));
+  const bestOlder = Math.min(...olderResults.map(r => r.time_sec));
+  
+  if (bestRecent < bestOlder) return 1;  // improved → position went up
+  if (bestRecent > bestOlder) return -1; // worsened → position went down
+  return 0;
+}
+
+// ============================================
+// TOGGLE/UI WIRING FOR DASHBOARD
+// ============================================
+
+function setupDashboardToggles() {
+  // Leaderboard gender toggle
+  setupToggle('leaderGenderToggle', renderLeaderboard);
+  // Leaderboard age group toggle
+  setupToggle('leaderAgeToggle', renderLeaderboard);
+  // Leaderboard course toggle (short/long pool)
+  setupToggle('leaderCourseToggle', renderLeaderboard);
+  // Leaderboard event select
+  const eventSelect = document.getElementById('leaderEventSelect');
+  if (eventSelect) {
+    eventSelect.addEventListener('change', renderLeaderboard);
+  }
+  // Progress period toggle
+  setupToggle('progressPeriodToggle', renderProgress);
+  // Progress stroke toggle
+  setupToggle('progressStrokeToggle', renderProgress);
+}
+
+function setupToggle(containerId, callback) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      callback();
+    });
+  });
 }
 
 // --- Search ---
@@ -129,6 +644,13 @@ const searchInput = document.getElementById('searchInput');
 const clearBtn = document.getElementById('clearBtn');
 const suggestionsEl = document.getElementById('suggestions');
 let activeSuggestion = -1;
+
+// Prevent parent frame (e.g. Perplexity embed) from intercepting search input events
+['click', 'focus', 'touchstart', 'touchend', 'mousedown', 'pointerdown'].forEach(evt => {
+  searchInput.addEventListener(evt, (e) => {
+    e.stopPropagation();
+  });
+});
 
 searchInput.addEventListener('input', () => {
   const q = searchInput.value.trim().toLowerCase();
@@ -268,6 +790,9 @@ function selectAthlete(athlete) {
   const currentClub = athlete.clubs[0] || '—';
   document.getElementById('athleteClub').querySelector('span').textContent = currentClub;
   
+  // Rating position
+  renderAthleteRating(athlete);
+  
   renderClubHistory(athlete);
   
   // KPIs
@@ -283,7 +808,7 @@ function selectAthlete(athlete) {
   document.getElementById('kpiStrokes').textContent = strokes.size;
   
   document.getElementById('resultsSection').style.display = 'block';
-  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('homeDashboard').style.display = 'none';
   
   renderPoolToggle(athlete);
   renderDistanceFilter(athlete);
@@ -292,6 +817,30 @@ function selectAthlete(athlete) {
   renderGloryWall(athlete);
   
   document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// --- Athlete Rating Display ---
+function renderAthleteRating(athlete) {
+  const ratingEl = document.getElementById('athleteRating');
+  if (!ratingEl) return;
+  
+  const rating = getAthleteRating(athlete);
+  if (!rating) {
+    ratingEl.style.display = 'none';
+    return;
+  }
+  
+  const change = getAthleteRatingChange(athlete);
+  let changeHtml = '';
+  if (change > 0) {
+    changeHtml = '<span class="rating-arrow rating-arrow--up">&#9650;</span>';
+  } else if (change < 0) {
+    changeHtml = '<span class="rating-arrow rating-arrow--down">&#9660;</span>';
+  }
+  
+  const evShort = rating.event.replace('Вольный стиль','Вольный').replace('На спине','Спина').replace('Баттерфляй','Баттер.').replace('Комплексное плавание','Компл.');
+  ratingEl.querySelector('span').innerHTML = `#${rating.position} ${changeHtml} <span class="rating-detail">${rating.ageGroup}, ${evShort}</span>`;
+  ratingEl.style.display = 'inline-flex';
 }
 
 // --- Club History ---
@@ -335,7 +884,7 @@ function renderClubHistory(athlete) {
 
 function hideResults() {
   document.getElementById('resultsSection').style.display = 'none';
-  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('homeDashboard').style.display = 'block';
   currentAthlete = null;
 }
 
@@ -511,9 +1060,6 @@ function renderProgressChart(athlete, filter) {
   const poolLegend = document.getElementById('poolLegend');
   if (poolLegend) poolLegend.style.display = (hasAnySCM && currentPoolFilter === 'all') ? 'flex' : 'none';
   
-  // Chart subtitle
-  const subtitle = currentPoolFilter === 'SCM' ? 'Бассейн 25м' : currentPoolFilter === 'LCM' ? 'Бассейн 50м' : '';
-  
   charts.progress = new Chart(canvas, {
     type: 'line',
     data: { datasets },
@@ -550,9 +1096,10 @@ function renderProgressChart(athlete, filter) {
             title: (items) => items[0]?.raw?.meet || '',
             label: (item) => {
               const d = item.raw;
-              const poolLabel = d.course === 'SCM' ? '▲ 25м бассейн' : '50м бассейн';
+              const poolLabel = d.course === 'SCM' ? '25м бассейн (к)' : '50м бассейн';
+              const timeMark = d.course === 'SCM' ? ' (к)' : '';
               return [
-                `Время: ${formatSeconds(d.y)}`,
+                `Время: ${formatSeconds(d.y)}${timeMark}`,
                 d.place > 0 ? `Место: ${d.place}` : '',
                 poolLabel + (d.pool ? ` (${d.pool})` : ''),
               ].filter(Boolean);
@@ -778,8 +1325,6 @@ function renderGloryWall(athlete) {
   let rankBadgeHtml = '';
   if (bestRank) {
     const rankCls = bestRank.isYouth ? 'rank-badge--youth' : 'rank-badge--adult';
-    const rankLevel = bestRank.rank.replace('(ю)', '').trim();
-    // Determine specific rank class for color
     let rankColorCls = 'rank-badge--iii';
     if (['МСМК','МС'].includes(bestRank.rank)) rankColorCls = 'rank-badge--ms';
     else if (bestRank.rank === 'КМС') rankColorCls = 'rank-badge--kms';
@@ -801,7 +1346,7 @@ function renderGloryWall(athlete) {
         <div class="rank-details">
           <span class="rank-event">${bestRank.event.split(' ')[0] + ' ' + shortStroke(bestRank.event.split(' ').slice(1).join(' '))}</span>
           <span class="rank-sep">·</span>
-          <span class="rank-time">${formatTime(bestRank.time)}</span>
+          <span class="rank-time">${formatTime(bestRank.time)}${bestRank.course === 'SCM' ? '<span class="short-pool-mark">(к)</span>' : ''}</span>
           <span class="rank-sep">·</span>
           <span class="rank-pool">${poolLabel}</span>
         </div>
@@ -855,12 +1400,13 @@ function renderGloryWall(athlete) {
           const medalClass = m.place === 1 ? 'medal-card--gold' : m.place === 2 ? 'medal-card--silver' : 'medal-card--bronze';
           const medalEmoji = m.place === 1 ? '🥇' : m.place === 2 ? '🥈' : '🥉';
           const poolBadge = m.course === 'SCM' ? '<span class="medal-pool medal-pool--scm">25м</span>' : '';
+          const medalPoolMark = m.course === 'SCM' ? '<span class="short-pool-mark">(к)</span>' : '';
           return `<div class="medal-card ${medalClass}">
             <div class="medal-emoji">${medalEmoji}</div>
             <div class="medal-details">
               <div class="medal-place">${placeLabel}</div>
               <div class="medal-event">${m.event} ${poolBadge}</div>
-              <div class="medal-time">${m.time}</div>
+              <div class="medal-time">${m.time}${medalPoolMark}</div>
               <div class="medal-meet">${m.meet} · ${m.date}</div>
             </div>
           </div>`;
@@ -871,12 +1417,61 @@ function renderGloryWall(athlete) {
 }
 
 // --- Table ---
+let tableFilterYear = '';
+let tableFilterEvent = '';
+
+function populateTableFilters(athlete) {
+  const results = athlete.results.filter(r => r.time_sec);
+  
+  // Year filter: extract unique years from dates
+  const years = [...new Set(results.map(r => r.date.split('-')[0]))].sort();
+  const dateSelect = document.getElementById('filterDate');
+  dateSelect.innerHTML = '<option value="">Все годы</option>' +
+    years.map(y => `<option value="${y}">${y}</option>`).join('');
+  dateSelect.value = tableFilterYear;
+  
+  // Event filter: group by distance + stroke
+  const events = [...new Set(results.map(r => `${r.distance}м ${r.stroke}`))].sort((a, b) => {
+    const da = parseInt(a), db = parseInt(b);
+    return da !== db ? da - db : a.localeCompare(b);
+  });
+  const eventSelect = document.getElementById('filterEvent');
+  eventSelect.innerHTML = '<option value="">Все дистанции</option>' +
+    events.map(e => `<option value="${e}">${e}</option>`).join('');
+  eventSelect.value = tableFilterEvent;
+  
+  // Event listeners (remove old, add new)
+  dateSelect.onchange = () => {
+    tableFilterYear = dateSelect.value;
+    renderTableRows(athlete);
+  };
+  eventSelect.onchange = () => {
+    tableFilterEvent = eventSelect.value;
+    renderTableRows(athlete);
+  };
+}
+
 function renderTable(athlete) {
+  tableFilterYear = '';
+  tableFilterEvent = '';
+  populateTableFilters(athlete);
+  renderTableRows(athlete);
+}
+
+function renderTableRows(athlete) {
   const tbody = document.getElementById('resultsBody');
-  const results = athlete.results.filter(r => r.time_sec).sort((a, b) => {
+  let results = athlete.results.filter(r => r.time_sec).sort((a, b) => {
     const dateCompare = a.date.localeCompare(b.date);
     return dateCompare !== 0 ? dateCompare : a.stroke.localeCompare(b.stroke);
   });
+  
+  // Apply filters
+  if (tableFilterYear) {
+    results = results.filter(r => r.date.startsWith(tableFilterYear));
+  }
+  if (tableFilterEvent) {
+    results = results.filter(r => `${r.distance}м ${r.stroke}` === tableFilterEvent);
+  }
   
   const prevTimes = {};
   
@@ -902,18 +1497,23 @@ function renderTable(athlete) {
     
     const courseLabel = r.course === 'SCM' ? '25м' : '50м';
     const courseCls = r.course === 'SCM' ? 'course-scm' : 'course-lcm';
+    const shortPoolMark = r.course === 'SCM' ? '<span class="short-pool-mark">(к)</span>' : '';
     
+    const eventStr = `${r.distance}м ${shortStroke(r.stroke)}`;
     return `<tr>
       <td>${formatDate(r.date)}</td>
-      <td>${truncate(cleanMeetName(r.meet), 25)}</td>
-      <td>${r.distance}м</td>
-      <td>${shortStroke(r.stroke)}</td>
-      <td class="time-cell">${formatTime(r.time)}${improvementHtml}</td>
-      <td><span class="course-badge ${courseCls}">${courseLabel}</span></td>
-      <td><span class="place-badge ${placeClass}">${placeText}</span></td>
+      <td class="col-meet">${truncate(cleanMeetName(r.meet), 25)}</td>
+      <td class="col-ev">${eventStr}</td>
+      <td class="time-cell">${formatTime(r.time)}${shortPoolMark}${improvementHtml}</td>
+      <td class="col-course"><span class="course-badge ${courseCls}">${courseLabel}</span></td>
+      <td class="col-place"><span class="place-badge ${placeClass}">${placeText}</span></td>
       ${clubTd}
     </tr>`;
   }).join('');
+  
+  if (!results.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--color-text-muted)">Нет результатов для выбранных фильтров</td></tr>';
+  }
 }
 
 // --- Helpers ---
@@ -968,3 +1568,4 @@ document.addEventListener('click', (e) => {
 
 // --- Init ---
 loadData();
+setupDashboardToggles();
