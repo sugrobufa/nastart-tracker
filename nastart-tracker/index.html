@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+
+<!-- Perplexity Computer Attribution — SEO Meta Tags -->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+<meta property="og:see_also" content="https://www.perplexity.ai/computer">
+<link rel="author" href="https://www.perplexity.ai/computer">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>НАСТАРТ — Прогресс пловца</title>
+<meta name="description" content="Отслеживание прогресса юного пловца по результатам соревнований НАСТАРТ">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <a href="https://xn--80aa1bodgc.xn--p1ai/" target="_blank" rel="noopener noreferrer" class="logo-link">
+        <svg width="58" height="36" viewBox="0 0 241.833 149.541" fill="none" aria-label="НАСТАРТ">
+          <path fill="currentColor" d="M194.452,149.541H19.907c-6.012,0-11.635-2.765-15.428-7.585c-4-5.083-5.41-11.643-3.871-17.999 l0.014-0.053L28.089,15.549C30.319,6.392,38.249,0,47.381,0h174.545c6.013,0,11.636,2.765,15.428,7.584 c3.999,5.083,5.409,11.644,3.87,17.999l-0.013,0.053l-27.468,108.355C211.513,143.148,203.585,149.541,194.452,149.541 M10.604,126.404c-0.783,3.261-0.068,6.608,1.963,9.188c1.854,2.359,4.461,3.657,7.34,3.657h174.545 c4.375,0,8.197-3.17,9.297-7.709l0.013-0.054l27.467-108.351c0.782-3.26,0.067-6.609-1.963-9.189 c-1.854-2.358-4.462-3.657-7.34-3.657H47.381c-4.375,0-8.198,3.171-9.297,7.71l-0.015,0.053L10.604,126.404z"/>
+          <path fill="currentColor" d="M175.264,39.344H119.03l4.021,17.566l31.687-0.021h12.926c5.012,0,7.07,1.672,6.176,5.014l-0.672,4.914 c-0.895,3.342-3.85,5.013-8.863,5.013h-36.751l8.851,37.695h20.932l-6.049-22.664l16.033,0.106 c13.367,0,19.211-5.849,22.346-17.545l3.357-12.533C196.157,45.193,188.631,39.344,175.264,39.344"/>
+          <polygon fill="currentColor" points="90.38,39.705 103.819,98.008 106.652,110.196 131.8,110.196 115.443,39.705"/>
+          <polygon fill="currentColor" points="70.998,97.619 93.978,67.695 88.199,42.438 53.06,88.194 53.067,88.163 53.06,88.194 36.164,110.196 61.339,110.196 97.984,110.196"/>
+        </svg>
+      </a>
+      <span class="logo-text">НАСТАРТ <span class="logo-accent">Трекер</span></span>
+    </div>
+    <button data-theme-toggle aria-label="Switch theme">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main class="main">
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="search-hero">
+      <h1>Прогресс юного пловца</h1>
+      <p class="search-subtitle">Введите фамилию для отслеживания результатов на соревнованиях НАСТАРТ</p>
+    </div>
+    <div class="search-box">
+      <div class="search-input-wrap">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Фамилия спортсмена..." autocomplete="off">
+        <button id="clearBtn" class="clear-btn" style="display:none" aria-label="Очистить">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="suggestions" class="suggestions"></div>
+    </div>
+  </section>
+
+  <!-- Homepage Dashboard (visible when no athlete selected) -->
+  <section id="homeDashboard" class="home-dashboard">
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-value" id="totalAthletes">—</span>
+        <span class="stat-label">спортсменов</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value" id="totalMeets">—</span>
+        <span class="stat-label">соревнований</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value">2022–2026</span>
+        <span class="stat-label">период</span>
+      </div>
+    </div>
+
+    <!-- Dashboard Grid: Leaderboard (left) + Progress (right) -->
+    <div class="dashboard-grid">
+      <!-- Leaderboard Panel -->
+      <div class="dashboard-panel leaderboard-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+            Лидеры по времени
+          </h2>
+        </div>
+        <!-- Gender toggle -->
+        <div class="toggle-row">
+          <div class="toggle-group" id="leaderGenderToggle">
+            <button class="toggle-btn active" data-value="M">Мальчики</button>
+            <button class="toggle-btn" data-value="F">Девочки</button>
+          </div>
+        </div>
+        <!-- Age group toggle -->
+        <div class="toggle-row">
+          <div class="toggle-group toggle-group--sm" id="leaderAgeToggle">
+            <button class="toggle-btn active" data-value="2015+">2015+</button>
+            <button class="toggle-btn" data-value="2013-2014">2013-14</button>
+            <button class="toggle-btn" data-value="2011-2012">2011-12</button>
+            <button class="toggle-btn" data-value="2009-2010">2009-10</button>
+            <button class="toggle-btn" data-value="2008-">2008-</button>
+          </div>
+        </div>
+        <!-- Course toggle -->
+        <div class="toggle-row">
+          <div class="toggle-group toggle-group--sm" id="leaderCourseToggle">
+            <button class="toggle-btn active" data-value="LCM">50м бассейн</button>
+            <button class="toggle-btn" data-value="SCM">25м бассейн</button>
+          </div>
+        </div>
+        <!-- Event select -->
+        <div class="toggle-row">
+          <select id="leaderEventSelect" class="event-select">
+            <option value="">Все дистанции</option>
+          </select>
+        </div>
+        <!-- Leaderboard table -->
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table" id="leaderboardTable">
+            <thead>
+              <tr>
+                <th class="col-rank">#</th>
+                <th class="col-name">Спортсмен</th>
+                <th class="col-event">Дистанция</th>
+                <th class="col-time">Время</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Progress Panel -->
+      <div class="dashboard-panel progress-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            Лучший прогресс
+          </h2>
+        </div>
+        <!-- Period toggle -->
+        <div class="toggle-row">
+          <div class="toggle-group" id="progressPeriodToggle">
+            <button class="toggle-btn active" data-value="year">За год</button>
+            <button class="toggle-btn" data-value="quarter">За квартал</button>
+          </div>
+        </div>
+        <!-- Stroke toggle -->
+        <div class="toggle-row">
+          <div class="toggle-group toggle-group--sm" id="progressStrokeToggle">
+            <button class="toggle-btn active" data-value="">Все стили</button>
+            <button class="toggle-btn" data-value="Вольный стиль">Вольный</button>
+            <button class="toggle-btn" data-value="На спине">Спина</button>
+            <button class="toggle-btn" data-value="Брасс">Брасс</button>
+            <button class="toggle-btn" data-value="Баттерфляй">Баттер.</button>
+            <button class="toggle-btn" data-value="Комплексное плавание">Компл.</button>
+          </div>
+        </div>
+        <!-- Progress table -->
+        <div class="leaderboard-table-wrap">
+          <table class="leaderboard-table" id="progressTable">
+            <thead>
+              <tr>
+                <th class="col-rank">#</th>
+                <th class="col-name">Спортсмен</th>
+                <th class="col-event">Дистанция</th>
+                <th class="col-progress">Улучшение</th>
+              </tr>
+            </thead>
+            <tbody id="progressBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Section (hidden by default) -->
+  <section id="resultsSection" class="results-section" style="display:none">
+    
+    <!-- Athlete Card -->
+    <div id="athleteCard" class="athlete-card">
+      <div class="athlete-header">
+        <div class="athlete-avatar" id="athleteAvatar">А</div>
+        <div class="athlete-info">
+          <h2 id="athleteName">—</h2>
+          <div class="athlete-meta">
+            <span id="athleteBirth" class="meta-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span>—</span>
+            </span>
+            <span id="athleteGender" class="meta-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+              <span>—</span>
+            </span>
+            <span id="athleteClub" class="meta-tag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span>—</span>
+            </span>
+            <span id="athleteRating" class="meta-tag meta-tag--rating" style="display:none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+              <span>—</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <!-- Club History Timeline -->
+      <div id="clubHistorySection" class="club-history" style="display:none">
+        <h4 class="club-history-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          История клубов / тренеров
+        </h4>
+        <div id="clubHistoryTimeline" class="club-timeline"></div>
+      </div>
+    </div>
+
+    <!-- Glory Wall (Аллея славы) -->
+    <div id="glorySection"></div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpiGrid">
+      <div class="kpi-card">
+        <div class="kpi-label">Соревнований</div>
+        <div class="kpi-value" id="kpiMeets">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Дистанций</div>
+        <div class="kpi-value" id="kpiEvents">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Лучшее место</div>
+        <div class="kpi-value" id="kpiBestPlace">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Стили плавания</div>
+        <div class="kpi-value" id="kpiStrokes">0</div>
+      </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="charts-grid">
+      <!-- Time Progress Chart -->
+      <div class="chart-card chart-wide">
+        <h3 class="chart-title">Динамика результатов по дистанциям</h3>
+        <div id="poolToggle" class="pool-toggle"></div>
+        <div class="chart-controls" id="distanceFilter"></div>
+        <div class="chart-wrap">
+          <canvas id="progressChart"></canvas>
+        </div>
+        <div class="chart-legend-note" id="poolLegend" style="display:none">
+          <span class="legend-marker legend-lcm">●</span> 50м бассейн
+          <span class="legend-marker legend-scm">▲</span> 25м бассейн
+        </div>
+      </div>
+
+      <!-- Place Distribution -->
+      <div class="chart-card">
+        <h3 class="chart-title">Распределение мест</h3>
+        <div class="chart-wrap chart-wrap-square">
+          <canvas id="placeChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Stroke Breakdown -->
+      <div class="chart-card">
+        <h3 class="chart-title">Стили плавания</h3>
+        <div class="chart-wrap chart-wrap-square">
+          <canvas id="strokeChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="table-card">
+      <h3 class="chart-title">Все результаты</h3>
+      <div class="table-filters" id="tableFilters">
+        <select id="filterDate" class="table-filter-select">
+          <option value="">Все годы</option>
+        </select>
+        <select id="filterEvent" class="table-filter-select">
+          <option value="">Все дистанции</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th class="col-meet">Соревнование</th>
+              <th class="col-ev">Дист.</th>
+              <th>Результат</th>
+              <th class="col-course">Басс.</th>
+              <th class="col-place">Место</th>
+              <th class="col-club">Клуб</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>Данные: <a href="https://xn--80aa1bodgc.xn--p1ai/" target="_blank" rel="noopener noreferrer">настарт.рф</a> &middot; <a href="https://timing.openband.ru" target="_blank" rel="noopener noreferrer">timing.openband.ru</a></p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
