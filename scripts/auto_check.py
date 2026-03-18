@@ -519,15 +519,6 @@ def main():
     print(f"  Всего страниц событий: {len(event_pages)}")
 
     for url, desc in event_pages:
-        # Skip pages for events we already fully have
-        # (check if the description matches a known meet in our data)
-        skip = False
-        desc_lower = desc.lower()
-        for existing_name in existing_names:
-            # If we have e.g. 2024_10_27_3tour_7 AND 2024_10_27_3tour_8plus,
-            # the event is likely fully covered
-            pass  # We check all pages to be safe
-
         protocols = extract_protocols_from_page(url, desc)
         if protocols:
             print(f"  {desc}: {len(protocols)} протокол(ов)")

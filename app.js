@@ -154,6 +154,9 @@ async function loadData() {
     populateEventSelect();
     renderLeaderboard();
     renderProgress();
+    buildEntityRatings();
+    renderSchoolRating();
+    renderCoachRating();
   } catch (e) {
     console.error('Failed to load data:', e);
   }
@@ -606,6 +609,210 @@ function getAthleteRatingChange(athlete) {
 }
 
 // ============================================
+// SCHOOL & COACH RATING LOGIC
+// ============================================
+
+let schoolRatings = [];
+let coachRatings = [];
+
+function parseClubCoach(clubStr) {
+  // Pattern: "SchoolName CoachLastname C.C." e.g. "ШП №1 Найденов С.В."
+  const m = clubStr.match(/^(.+?)\s+([А-ЯЁ][а-яё]+\s+[А-ЯЁ]\.[А-ЯЁ]\.?)$/);
+  if (m) {
+    return { school: m[1].trim(), coach: m[2].trim() };
+  }
+  return { school: clubStr, coach: null };
+}
+
+function buildEntityRatings() {
+  const schoolMap = {};
+  const coachMap = {};
+
+  for (const athlete of athletesData) {
+    // Sort results chronologically for PB tracking
+    const sorted = [...athlete.results]
+      .filter(r => r.time_sec && r.place > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const pbs = {}; // key: "distance|stroke|course" -> best time so far
+
+    for (const r of sorted) {
+      const club = r.club || '';
+      if (!club) continue;
+
+      const { school, coach } = parseClubCoach(club);
+      const eventKey = `${r.distance}|${r.stroke}|${r.course || 'LCM'}`;
+
+      // Calculate points for this result
+      let pts = 0;
+      if (r.place === 1) pts = 5;
+      else if (r.place === 2) pts = 3;
+      else if (r.place === 3) pts = 2;
+
+      // Check for personal best
+      let isPB = false;
+      if (pbs[eventKey] === undefined || r.time_sec < pbs[eventKey]) {
+        if (pbs[eventKey] !== undefined) {
+          isPB = true; // Not the first time = it's a PB improvement
+          pts += 1;
+        }
+        pbs[eventKey] = r.time_sec;
+      }
+
+      // Accumulate school stats
+      if (!schoolMap[school]) {
+        schoolMap[school] = { name: school, points: 0, athletes: new Set(), gold: 0, silver: 0, bronze: 0, pbs: 0 };
+      }
+      const s = schoolMap[school];
+      s.points += pts;
+      s.athletes.add(`${athlete.lastname}|${athlete.firstname}`);
+      if (r.place === 1) s.gold++;
+      if (r.place === 2) s.silver++;
+      if (r.place === 3) s.bronze++;
+      if (isPB) s.pbs++;
+
+      // Accumulate coach stats (only if coach identified)
+      if (coach) {
+        if (!coachMap[coach]) {
+          coachMap[coach] = { name: coach, points: 0, athletes: new Set(), gold: 0, silver: 0, bronze: 0, pbs: 0 };
+        }
+        const c = coachMap[coach];
+        c.points += pts;
+        c.athletes.add(`${athlete.lastname}|${athlete.firstname}`);
+        if (r.place === 1) c.gold++;
+        if (r.place === 2) c.silver++;
+        if (r.place === 3) c.bronze++;
+        if (isPB) c.pbs++;
+      }
+    }
+  }
+
+  // Convert to arrays with computed efficiency
+  schoolRatings = Object.values(schoolMap)
+    .map(s => ({
+      name: s.name,
+      points: s.points,
+      athleteCount: s.athletes.size,
+      efficiency: s.athletes.size > 0 ? (s.points / s.athletes.size) : 0,
+      gold: s.gold,
+      silver: s.silver,
+      bronze: s.bronze,
+    }))
+    .filter(s => s.points > 0)
+    .sort((a, b) => b.points - a.points);
+
+  coachRatings = Object.values(coachMap)
+    .map(c => ({
+      name: c.name,
+      points: c.points,
+      athleteCount: c.athletes.size,
+      efficiency: c.athletes.size > 0 ? (c.points / c.athletes.size) : 0,
+      gold: c.gold,
+      silver: c.silver,
+      bronze: c.bronze,
+    }))
+    .filter(c => c.points > 0 && c.athleteCount >= 3)
+    .sort((a, b) => b.points - a.points);
+}
+
+function renderSchoolRating() {
+  const toggle = document.getElementById('schoolSortToggle');
+  const sortBy = toggle ? (toggle.querySelector('.toggle-btn.active')?.dataset.value || 'points') : 'points';
+  const isEff = sortBy === 'efficiency';
+
+  // For efficiency sort, require at least 3 athletes
+  const filtered = isEff ? schoolRatings.filter(s => s.athleteCount >= 3) : schoolRatings;
+  const sorted = [...filtered].sort((a, b) =>
+    isEff ? b.efficiency - a.efficiency : b.points - a.points
+  );
+
+  // Update header text based on sort mode
+  const table = document.getElementById('schoolRatingTable');
+  if (table) {
+    const thMain = table.querySelector('th.col-points');
+    const thSec = table.querySelector('th.col-eff');
+    if (thMain) thMain.textContent = isEff ? 'Эфф.' : 'Баллы';
+    if (thSec) thSec.textContent = isEff ? 'Баллы' : 'Эфф.';
+  }
+
+  const tbody = document.getElementById('schoolRatingBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = sorted.slice(0, 15).map((s, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+    const mainValue = isEff ? s.efficiency.toFixed(1) : s.points;
+    return `<tr>
+      <td class="col-rank"><span class="rank-num ${rankClass}">${rank}</span></td>
+      <td class="col-name" title="${s.name}">${s.name}</td>
+      <td class="col-points"><strong>${mainValue}</strong></td>
+      <td class="col-swimmers">${s.athleteCount}</td>
+      <td class="col-eff">${isEff ? s.points : s.efficiency.toFixed(1)}</td>
+      <td class="col-medals">
+        <span class="medal-count"><span class="medal-icon">🥇</span><span class="medal-num">${s.gold}</span></span>
+        <span class="medal-count"><span class="medal-icon">🥈</span><span class="medal-num">${s.silver}</span></span>
+        <span class="medal-count"><span class="medal-icon">🥉</span><span class="medal-num">${s.bronze}</span></span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderCoachRating() {
+  const toggle = document.getElementById('coachSortToggle');
+  const sortBy = toggle ? (toggle.querySelector('.toggle-btn.active')?.dataset.value || 'points') : 'points';
+  const isEff = sortBy === 'efficiency';
+
+  const sorted = [...coachRatings].sort((a, b) =>
+    isEff ? b.efficiency - a.efficiency : b.points - a.points
+  );
+
+  // Update header text based on sort mode
+  const table = document.getElementById('coachRatingTable');
+  if (table) {
+    const thMain = table.querySelector('th.col-points');
+    const thSec = table.querySelector('th.col-eff');
+    if (thMain) thMain.textContent = isEff ? 'Эфф.' : 'Баллы';
+    if (thSec) thSec.textContent = isEff ? 'Баллы' : 'Эфф.';
+  }
+
+  const tbody = document.getElementById('coachRatingBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = sorted.slice(0, 15).map((c, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+    const mainValue = isEff ? c.efficiency.toFixed(1) : c.points;
+    return `<tr>
+      <td class="col-rank"><span class="rank-num ${rankClass}">${rank}</span></td>
+      <td class="col-name" title="${c.name}">${c.name}</td>
+      <td class="col-points"><strong>${mainValue}</strong></td>
+      <td class="col-swimmers">${c.athleteCount}</td>
+      <td class="col-eff">${isEff ? c.points : c.efficiency.toFixed(1)}</td>
+      <td class="col-medals">
+        <span class="medal-count"><span class="medal-icon">🥇</span><span class="medal-num">${c.gold}</span></span>
+        <span class="medal-count"><span class="medal-icon">🥈</span><span class="medal-num">${c.silver}</span></span>
+        <span class="medal-count"><span class="medal-icon">🥉</span><span class="medal-num">${c.bronze}</span></span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// Modal functions
+function showMethodologyModal() {
+  document.getElementById('methodologyModal').style.display = 'flex';
+}
+function hideMethodologyModal() {
+  document.getElementById('methodologyModal').style.display = 'none';
+}
+
+// Close modal on overlay click
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'methodologyModal') {
+    hideMethodologyModal();
+  }
+});
+
+// ============================================
 // TOGGLE/UI WIRING FOR DASHBOARD
 // ============================================
 
@@ -625,6 +832,16 @@ function setupDashboardToggles() {
   setupToggle('progressPeriodToggle', renderProgress);
   // Progress stroke toggle
   setupToggle('progressStrokeToggle', renderProgress);
+  // Dashboard tab toggle (Results / Ratings)
+  setupToggle('dashboardTabToggle', () => {
+    const activeTab = document.querySelector('#dashboardTabToggle .toggle-btn.active')?.dataset.value || 'results';
+    document.getElementById('dashTabResults').classList.toggle('active', activeTab === 'results');
+    document.getElementById('dashTabRatings').classList.toggle('active', activeTab === 'ratings');
+  });
+  // School sort toggle
+  setupToggle('schoolSortToggle', renderSchoolRating);
+  // Coach sort toggle
+  setupToggle('coachSortToggle', renderCoachRating);
 }
 
 function setupToggle(containerId, callback) {

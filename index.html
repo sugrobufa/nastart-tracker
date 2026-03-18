@@ -96,6 +96,20 @@
       </div>
     </div>
 
+    <div class="dashboard-tabs">
+      <div class="toggle-group" id="dashboardTabToggle">
+        <button class="toggle-btn active" data-value="results">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+          Результаты
+        </button>
+        <button class="toggle-btn" data-value="ratings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+          Рейтинги
+        </button>
+      </div>
+    </div>
+
+    <div id="dashTabResults" class="dash-tab-content active">
     <!-- Dashboard Grid: Leaderboard (left) + Progress (right) -->
     <div class="dashboard-grid">
       <!-- Leaderboard Panel -->
@@ -194,11 +208,84 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <div id="dashTabRatings" class="dash-tab-content">
+      <div class="dashboard-grid">
+        <!-- School Rating Panel -->
+        <div class="dashboard-panel rating-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Рейтинг школ плавания
+              <button class="info-btn" onclick="showMethodologyModal()" aria-label="Методология рейтинга">?</button>
+            </h2>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-group toggle-group--sm" id="schoolSortToggle">
+              <button class="toggle-btn active" data-value="points">По баллам</button>
+              <button class="toggle-btn" data-value="efficiency">По эффективности</button>
+            </div>
+          </div>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table rating-table" id="schoolRatingTable">
+              <thead>
+                <tr>
+                  <th class="col-rank">#</th>
+                  <th class="col-name">Школа</th>
+                  <th class="col-points">Баллы</th>
+                  <th class="col-swimmers">Пловцы</th>
+                  <th class="col-eff">Эфф.</th>
+                  <th class="col-medals">Медали</th>
+                </tr>
+              </thead>
+              <tbody id="schoolRatingBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Coach Rating Panel -->
+        <div class="dashboard-panel rating-panel">
+          <div class="panel-header">
+            <h2 class="panel-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Рейтинг тренеров
+              <button class="info-btn" onclick="showMethodologyModal()" aria-label="Методология рейтинга">?</button>
+            </h2>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-group toggle-group--sm" id="coachSortToggle">
+              <button class="toggle-btn active" data-value="points">По баллам</button>
+              <button class="toggle-btn" data-value="efficiency">По эффективности</button>
+            </div>
+          </div>
+          <div class="leaderboard-table-wrap">
+            <table class="leaderboard-table rating-table" id="coachRatingTable">
+              <thead>
+                <tr>
+                  <th class="col-rank">#</th>
+                  <th class="col-name">Тренер</th>
+                  <th class="col-points">Баллы</th>
+                  <th class="col-swimmers">Ученики</th>
+                  <th class="col-eff">Эфф.</th>
+                  <th class="col-medals">Медали</th>
+                </tr>
+              </thead>
+              <tbody id="coachRatingBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Results Section (hidden by default) -->
   <section id="resultsSection" class="results-section" style="display:none">
-    
+    <button class="back-btn" onclick="hideResults(); searchInput.value=''; clearBtn.style.display='none';">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Назад к поиску
+    </button>
+
     <!-- Athlete Card -->
     <div id="athleteCard" class="athlete-card">
       <div class="athlete-header">
@@ -325,6 +412,61 @@
 <footer class="footer">
   <p>Данные: <a href="https://xn--80aa1bodgc.xn--p1ai/" target="_blank" rel="noopener noreferrer">настарт.рф</a> &middot; <a href="https://timing.openband.ru" target="_blank" rel="noopener noreferrer">timing.openband.ru</a></p>
 </footer>
+
+<!-- Methodology Modal -->
+<div id="methodologyModal" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Методология рейтинга
+      </h3>
+      <button class="modal-close" onclick="hideMethodologyModal()" aria-label="Закрыть">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Рейтинг школ и тренеров рассчитывается на основе результатов пловцов на соревнованиях НАСТАРТ.</p>
+      <div class="methodology-table">
+        <div class="methodology-row">
+          <span class="methodology-icon">🥇</span>
+          <span class="methodology-label">1 место</span>
+          <span class="methodology-value">5 баллов</span>
+        </div>
+        <div class="methodology-row">
+          <span class="methodology-icon">🥈</span>
+          <span class="methodology-label">2 место</span>
+          <span class="methodology-value">3 балла</span>
+        </div>
+        <div class="methodology-row">
+          <span class="methodology-icon">🥉</span>
+          <span class="methodology-label">3 место</span>
+          <span class="methodology-value">2 балла</span>
+        </div>
+        <div class="methodology-divider"></div>
+        <div class="methodology-row">
+          <span class="methodology-icon">⚡</span>
+          <span class="methodology-label">Бонус ЛР</span>
+          <span class="methodology-value">+1 балл</span>
+        </div>
+        <div class="methodology-divider"></div>
+        <div class="methodology-row">
+          <span class="methodology-icon">Σ</span>
+          <span class="methodology-label">Баллы</span>
+          <span class="methodology-value methodology-formula">сумма за все старты</span>
+        </div>
+        <div class="methodology-row">
+          <span class="methodology-icon">÷</span>
+          <span class="methodology-label">Эффективность</span>
+          <span class="methodology-value methodology-formula">Баллы ÷ Кол-во пловцов</span>
+        </div>
+      </div>
+      <p class="methodology-note">Личный рекорд (ЛР) — лучший результат спортсмена на дистанции за всё время. Бонусный балл начисляется при каждом обновлении ЛР на соревнованиях.</p>
+      <p class="methodology-note">В рейтинге тренеров учитываются только тренеры с 3 и более выступающими спортсменами. В рейтинге по эффективности школы также требуют минимум 3 пловцов.</p>
+    </div>
+    <button class="modal-action" onclick="hideMethodologyModal()">Понятно</button>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
