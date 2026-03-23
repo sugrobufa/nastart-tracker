@@ -45,6 +45,7 @@ TPOST_BASE = f"{NASTART_BASE}/sprint/15032026/tpost"
 # Format: (tpost_slug, description)
 # Newer events use date-based slugs (DDMMYYYY), older use Tilda hashes
 KNOWN_EVENT_PAGES = [
+    ("15032026", "НАСТАРТ II тур 2026"),
     ("15022026itogi", "НАСТАРТ I тур 2026"),
     ("14122025", "НАСТАРТ IV тур 2025"),
     ("19102025", "НАСТАРТ III тур 2025"),
