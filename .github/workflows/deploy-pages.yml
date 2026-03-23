@@ -9,6 +9,7 @@ on:
       - 'style.css'
       - 'app.js'
       - 'data.json'
+      - 'rank_standards.json'
 
   # Позволяет запустить вручную
   workflow_dispatch:
@@ -39,11 +40,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Загружаем только файлы сайта (без скриптов и PDF)
           path: '.'
-          # Исключение через .pagesignore не поддерживается,
-          # поэтому GitHub Pages просто отдаст всё — это ок,
-          # PDF доступны через прямые ссылки если нужно
 
       - name: Deploy to GitHub Pages
         id: deployment
