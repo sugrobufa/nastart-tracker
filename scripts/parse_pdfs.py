@@ -38,6 +38,9 @@ PROTOCOLS = [
     {"name": "2025_10_19_3tour_8plus_s1", "date": "2025-10-19", "meet": "НАСТАРТ III тур 2025"},
     {"name": "2025_10_19_3tour_9plus", "date": "2025-10-19", "meet": "НАСТАРТ III тур 2025"},
     {"name": "2026_02_15_1tour", "date": "2026-02-15", "meet": "НАСТАРТ I тур 2026"},
+    {"name": "2025_10_19_3tour_8plus", "date": "2025-10-19", "meet": "НАСТАРТ III тур 2025"},
+    {"name": "2024_12_22_4tour_7", "date": "2024-12-22", "meet": "НАСТАРТ IV тур 2024"},
+    {"name": "2024_12_22_4tour_8plus", "date": "2024-12-22", "meet": "НАСТАРТ IV тур 2024"},
 ]
 
 def detect_pool_length(pdf_path):
